@@ -1,19 +1,24 @@
 import {
   basename,
-  createHash,
+  crypto,
   Document,
   Element,
   fromFileUrl,
   MuxAsyncIterator,
+  toHashString,
 } from "./deps.ts";
 
 export const decoder = new TextDecoder();
 export const encoder = new TextEncoder();
 
-export function md5(data: string | ArrayBuffer): string {
-  const hash = createHash("md5");
-  hash.update(data);
-  return hash.toString();
+export async function md5(data: string | ArrayBuffer): Promise<string> {
+  const hash = await crypto.subtle.digest(
+    "MD5",
+    data instanceof ArrayBuffer
+      ? new Uint8Array(data)
+      : new TextEncoder().encode(data),
+  );
+  return toHashString(hash);
 }
 
 export async function getDependencies(path: string): Promise<string[]> {

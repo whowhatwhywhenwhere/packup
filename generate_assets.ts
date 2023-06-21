@@ -240,7 +240,8 @@ class CssAsset implements Asset {
     { pageName, base, pathPrefix }: CreateFileObjectParams,
   ): Promise<File[]> {
     const data = await Deno.readFile(join(base, this._href));
-    this._dest = `${pageName}.${md5(data)}.css`;
+    const hashed = await md5(data);
+    this._dest = `${pageName}.${hashed}.css`;
     this._el.setAttribute("href", posixPathJoin(pathPrefix, this._dest));
     return [
       Object.assign(new Blob([data]), { name: this._dest, lastModified: 0 }),
@@ -256,7 +257,8 @@ class ScssAsset extends CssAsset {
     { pageName, base, pathPrefix }: CreateFileObjectParams,
   ): Promise<File[]> {
     const scss = await Deno.readFile(join(base, this._href));
-    this._dest = `${pageName}.${md5(scss)}.css`;
+    const hashed = await md5(scss);
+    this._dest = `${pageName}.${hashed}.css`;
     this._el.setAttribute("href", posixPathJoin(pathPrefix, this._dest));
     return [Object.assign(new Blob([await compileSass(decoder.decode(scss))]), {
       name: this._dest,
@@ -301,7 +303,8 @@ class ScriptAsset implements Asset {
   }: CreateFileObjectParams): Promise<File[]> {
     const path = join(base, this.#src);
     const data = await bundleByEsbuild(path);
-    this.#dest = `${pageName}.${md5(data)}.js`;
+    const hashed = await md5(data);
+    this.#dest = `${pageName}.${hashed}.js`;
     this.#el.setAttribute("src", posixPathJoin(pathPrefix, this.#dest));
     return [
       Object.assign(new Blob([data]), { name: this.#dest, lastModified: 0 }),
@@ -370,7 +373,8 @@ class ImageAsset implements Asset {
     for (const src of this.#sources) {
       const data = await Deno.readFile(join(base, src));
       const [, extension] = src.match(/\.([\w]+)$/) ?? [];
-      const dest = `${pageName}.${md5(data)}.${extension}`;
+      const hashed = await md5(data);
+      const dest = `${pageName}.${hashed}.${extension}`;
 
       if (this.#el.getAttribute("src")?.match(src)) {
         this.#el.setAttribute("src", posixPathJoin(pathPrefix, dest));
