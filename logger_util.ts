@@ -1,7 +1,7 @@
 import {
   create,
   Level,
-} from "https://raw.githubusercontent.com/kt3k/simple_logger/v0.0.3/mod.ts";
+} from "./deps.ts";
 
 export let logger = create("info");
 
