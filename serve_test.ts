@@ -1,9 +1,8 @@
 import { assertEquals } from "./test_deps.ts";
 
 Deno.test("cli.ts serve <entrypoint> --port <port> --livereload-port <port> -- serves the site at the given port and livereload port", async () => {
-  const p = Deno.run({
-    cmd: [
-      Deno.execPath(),
+  const command = new Deno.Command(Deno.execPath(), {
+    args: [
       "run",
       "-A",
       "cli.ts",
@@ -15,7 +14,7 @@ Deno.test("cli.ts serve <entrypoint> --port <port> --livereload-port <port> -- s
       "34567",
     ],
   });
-  await new Promise((resolve) => setTimeout(resolve, 10000));
+  const child = command.spawn();
   let res = await fetch("http://localhost:4567/index.html");
   assertEquals(
     await res.text(),
@@ -29,5 +28,6 @@ Deno.test("cli.ts serve <entrypoint> --port <port> --livereload-port <port> -- s
     await res.text(),
     `<!DOCTYPE html><html><head></head><body><div>aaa</div>\n<script src="http://localhost:34567/livereload.js"></script></body></html>`,
   );
-  p.close();
+  child.kill("SIGTERM");
+  await child.output();
 });

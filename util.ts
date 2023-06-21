@@ -22,21 +22,16 @@ export async function md5(data: string | ArrayBuffer): Promise<string> {
 }
 
 export async function getDependencies(path: string): Promise<string[]> {
-  const p = Deno.run({
-    cmd: [Deno.execPath(), "info", "--json", path],
+  const command = new Deno.Command(Deno.execPath(), {
+    args: ["info", "--json", path],
     stdout: "piped",
     stderr: "piped",
   });
-  const [status, output, stderrOutput] = await Promise.all([
-    p.status(),
-    p.output(),
-    p.stderrOutput(),
-  ]);
-  if (status.code !== 0) {
-    throw new Error(decoder.decode(stderrOutput));
+  const { code, stdout, stderr } = await command.output();
+  if (code !== 0) {
+    throw new Error(decoder.decode(stderr));
   }
-  const denoInfo = JSON.parse(decoder.decode(output)) as DenoInfo;
-  p.close();
+  const denoInfo = JSON.parse(decoder.decode(stdout)) as DenoInfo;
   return denoInfo.modules.map((m) => m.specifier);
 }
 
