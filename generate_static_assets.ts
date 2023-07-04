@@ -1,4 +1,5 @@
 import { join, relative, walk } from "./deps.ts";
+
 import { logger } from "./logger_util.ts";
 
 export async function checkStaticDir(dir: string): Promise<boolean> {
@@ -77,8 +78,7 @@ async function createStaticAssetFromPath(
 ): Promise<File> {
   logger.debug("Reading", path);
   const bytes = await Deno.readFile(path);
-  return Object.assign(new Blob([bytes]), {
-    name: join(distPrefix, relative(root, path)),
+  return new File([bytes], join(distPrefix, relative(root, path)), {
     lastModified: 0,
   });
 }

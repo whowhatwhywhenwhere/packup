@@ -9,12 +9,13 @@
  * - ScriptAsset - represents javascript or typescript
  * - ImageAsset
  */
+
 import {
+  DOMParser,
+  Document,
+  Element,
   basename,
   dirname,
-  Document,
-  DOMParser,
-  Element,
   join,
   posixPathJoin,
 } from "./deps.ts";
@@ -26,9 +27,10 @@ import {
   md5,
   qs,
 } from "./util.ts";
+
 import { bundleByEsbuild } from "./bundle_util.ts";
-import { logger } from "./logger_util.ts";
 import { compile as compileSass } from "./sass_util.ts";
+import { logger } from "./logger_util.ts";
 
 /**
  * Options for asset generation.
@@ -83,10 +85,9 @@ export async function generateAssets(
     });
     for (const file of files) yield file;
     if (opts.mainAs404) {
-      yield Object.assign(
-        (await htmlAsset.createFileObject({ pageName, base, pathPrefix }))[0],
-        { name: "404", lastModified: 0 },
-      );
+      yield new File([await files[0].arrayBuffer()], "404", {
+        ...files[0],
+      });
     }
     logger.log(`${path} bundled in ${Date.now() - buildStarted}ms`);
 
@@ -182,10 +183,13 @@ class HtmlAsset implements Asset {
   }
 
   createFileObject(_params: CreateFileObjectParams) {
-    return Promise.resolve([Object.assign(
-      new Blob([docType, encoder.encode(this.#doc.documentElement!.outerHTML)]),
-      { name: this.#filename, lastModified: 0 },
-    )]);
+    return Promise.resolve([
+      new File(
+        [docType, encoder.encode(this.#doc.documentElement!.outerHTML)],
+        this.#filename,
+        { lastModified: 0, type: "text/html" },
+      ),
+    ]);
   }
 
   getWatchPaths() {
@@ -244,7 +248,7 @@ class CssAsset implements Asset {
     this._dest = `${pageName}.${hashed}.css`;
     this._el.setAttribute("href", posixPathJoin(pathPrefix, this._dest));
     return [
-      Object.assign(new Blob([data]), { name: this._dest, lastModified: 0 }),
+      new File([data], this._dest, { lastModified: 0, type: "text/css" }),
     ];
   }
 }
@@ -260,10 +264,12 @@ class ScssAsset extends CssAsset {
     const hashed = await md5(scss);
     this._dest = `${pageName}.${hashed}.css`;
     this._el.setAttribute("href", posixPathJoin(pathPrefix, this._dest));
-    return [Object.assign(new Blob([await compileSass(decoder.decode(scss))]), {
-      name: this._dest,
-      lastModified: 0,
-    })];
+    return [
+      new File([await compileSass(decoder.decode(scss))], this._dest, {
+        lastModified: 0,
+        type: "text/css",
+      }),
+    ];
   }
 }
 
@@ -307,7 +313,10 @@ class ScriptAsset implements Asset {
     this.#dest = `${pageName}.${hashed}.js`;
     this.#el.setAttribute("src", posixPathJoin(pathPrefix, this.#dest));
     return [
-      Object.assign(new Blob([data]), { name: this.#dest, lastModified: 0 }),
+      new File([data], this.#dest, {
+        lastModified: 0,
+        type: "application/javascript",
+      }),
     ];
   }
 }
@@ -391,7 +400,7 @@ class ImageAsset implements Asset {
       }
 
       files.push(
-        Object.assign(new Blob([data]), { name: dest, lastModified: 0 }),
+        new File([data], dest, { lastModified: 0, type: `image/${extension}` }),
       );
     }
 
